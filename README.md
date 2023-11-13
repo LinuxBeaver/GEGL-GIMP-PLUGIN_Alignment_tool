@@ -1,4 +1,4 @@
-### Allign Image (Gimp Plugin)
+### Align Image (Gimp Plugin)
 
 This filter is an allignment tool as a GEGL filter. 0.0 is left, 0.5 is center, and 1.0 is right. This filter has a bug where it will not work proper unless if used with the "clip" blend mode. 
 Sometimes you have to flip the setting from adjust to clip to remove the glitch in the middle of a session after already doing it. I don't know why this glitch happens. 
