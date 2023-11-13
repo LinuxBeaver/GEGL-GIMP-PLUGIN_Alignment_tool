@@ -7,7 +7,7 @@ Sometimes you have to flip the setting from adjust to clip to remove the glitch 
 
  
 Download procompiled binaries here
-/releases
+https://github.com/LinuxBeaver/Gimp_Align_Tool_Filter/releases/tag/Align_Images_Gimp_Plugin
 
 ## Location to put binaries
 
