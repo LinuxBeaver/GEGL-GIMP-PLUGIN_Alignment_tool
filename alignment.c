@@ -139,7 +139,7 @@ state->invertstring = gegl_node_new_child (gegl,
                                   NULL);
 
   state->rotate = gegl_node_new_child (gegl,
-                                  "operation", "gegl:nop",  "sampler", 3, /*This nop can be swapped for gegl:rotate-on-center to test the experimental rotation.*/
+                                  "operation", "gegl:nop", /* "gegl:rotate-on-center", "sampler", 3, was the original node*/
                                   NULL);
 
   state->crop = gegl_node_new_child (gegl,
@@ -162,7 +162,8 @@ state->invertstring = gegl_node_new_child (gegl,
  gegl_operation_meta_redirect (operation, "scale", state->scale1, "y"); 
  gegl_operation_meta_redirect (operation, "scale", state->scale2, "x"); 
  gegl_operation_meta_redirect (operation, "scale", state->scale2, "y"); 
- gegl_operation_meta_redirect (operation, "rotate", state->rotate, "degrees"); 
+  /* gegl_operation_meta_redirect (operation, "rotate", state->rotate, "degrees"); 
+In early developing this filter had a rotate option that was scrapped */
 
 } 
 
@@ -182,9 +183,9 @@ default: scale = state->scale1;
 
 }
   gegl_node_link_many (state->input, state->idref2, state->alphalockreplace, state->crop, state->output,  NULL);
-  gegl_node_connect_from (state->alphalockreplace, "aux", state->erase, "output");
+  gegl_node_connect (state->alphalockreplace, "aux", state->erase, "output");
   gegl_node_link_many (state->idref2, state->idref, state->invertstring, state->erase,  NULL);
-  gegl_node_connect_from (state->erase, "aux", state->align, "output");
+  gegl_node_connect (state->erase, "aux", state->align, "output");
   gegl_node_link_many (state->idref,  scale, state->rotate, state->align,  NULL);
 }
 
