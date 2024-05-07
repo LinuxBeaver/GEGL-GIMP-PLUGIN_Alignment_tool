@@ -19,12 +19,12 @@
 Test this filter without installing by pasting this GEGL Syntax inside Gimp's GEGL Graph filter
 
 
-id=in 
-color-overlay value=#ffffff dst-over aux=[ color value=#000000  ]   gimp:layer-mode layer-mode=color-erase opacity=1.00 aux=[ color value=#ffffff ]  crop 
+id=in
+color-overlay value=#ffffff dst-over aux=[ color value=#000000  ]   gimp:layer-mode layer-mode=color-erase opacity=1.00 aux=[ color value=#ffffff ]  crop
 xor aux=[
 ref=in scale-ratio x=0.80 y=0.80 sampler=nohalo
 
- border-align x=0.5 y=0.5 
+ border-align x=0.5 y=0.5
 ]
 
 
@@ -51,27 +51,30 @@ property_enum (algorithm, _("Scale Mode"),
 
 
 property_double (scale, _("Scale"), 1.00)
-    description (_("Scale Image. 1.00 is the default full size.")) 
-    value_range (0.05, 1.0)
-    ui_range    (0.05, 1.0)
-  ui_steps      (0.1, 0.5)
+    description (_("Scale Image. 1.00 is the default full size."))
+    value_range (0.05, 10.0)
+    ui_range    (0.05, 4.0)
+  ui_steps      (0.01, 0.05)
 
 property_double (x, _("Allign Amount Horizontal"), 0.5)
-    description (_("Horizontal Allignment. 0.0 is the left border, 0.5 is center, and 1.0 is the right border.")) 
+    description (_("Horizontal Allignment. 0.0 is the left border, 0.5 is center, and 1.0 is the right border."))
     value_range (0.0, 1.0)
     ui_range    (0.0, 1.0)
-  ui_steps      (0.1, 0.5)
+
 
 property_double (y, _("Allign Amount Vertical"), 0.5)
-    description (_("Vertical Allignment. 0.0 is the left border, 0.5 is center, and 1.0 is the right border.")) 
+    description (_("Vertical Allignment. 0.0 is the left border, 0.5 is center, and 1.0 is the right border."))
     value_range (0.0, 1.0)
     ui_range    (0.0, 1.0)
-  ui_steps      (0.1, 0.5)
 
-/*
+
+property_boolean (enablerotate, _("Enable Rotate (slow)"), FALSE)
+  description    (_("Enable rotate - which is slow as when this checkbox is enabled the rotate node will be active."))
+
+
 property_double (rotate, _("Rotate on Center"), 0.0)
     description(_("Angle to rotate (counter-clockwise)"))
-    ui_range (-180.0, 180.0) */
+    ui_range (-180.0, 180.0)
 
 /*This can be made normal code to restore the rotate on center option I decided to cancel.*/
 #else
@@ -92,7 +95,7 @@ typedef struct
  GeglNode *scale1;
  GeglNode *scale2;
  GeglNode *align;
- GeglNode *alphalockreplace;
+ GeglNode *replacenode;
  GeglNode *nop;
  GeglNode *crop;
  GeglNode *rotate;
@@ -111,39 +114,39 @@ static void attach (GeglOperation *operation)
 
 #define invert_transparency \
 " color-overlay value=#ffffff dst-over aux=[ color value=#000000  ]   color-to-alpha  color=#ffffff  transparency-threshold=1 src-in aux=[ color value=#ffffff ]  crop   "\
-/*This syntax string inverts transparency. NOTE I ALSO HAVE A PLUGIN THAT DOES THIS BUT I CHOOSE NOT TO SHIP WITH IT.*/ 
+/*This syntax string inverts transparency. NOTE I ALSO HAVE A PLUGIN THAT DOES THIS BUT I CHOOSE NOT TO SHIP WITH IT.*/
 
 state->invertstring = gegl_node_new_child (gegl,
                                   "operation", "gegl:gegl", "string", invert_transparency,
                                   NULL);
 
   state->erase = gegl_node_new_child (gegl,
-                                  "operation", "gegl:xor", 
+                                  "operation", "gegl:xor",
                                   NULL);
 
 
   state->nop = gegl_node_new_child (gegl,
-                                  "operation", "gegl:nop", 
+                                  "operation", "gegl:nop",
                                   NULL);
 
-  state->alphalockreplace = gegl_node_new_child (gegl,
-                                  "operation", "gegl:src-in",  /*This is a GEGL exclusive blend mode that fuctions like Gimp's "lock alpha channel" and replace blend mode fused together.*/
+  state->replacenode = gegl_node_new_child (gegl,
+                                  "operation", "gegl:src",  /*This is a GEGL exclusive blend mode that fuctions like Gimp's "lock alpha channel" and replace blend mode fused together.*/
                                   NULL);
 
   state->idref = gegl_node_new_child (gegl,
-                                  "operation", "gegl:nop", 
+                                  "operation", "gegl:nop",
                                   NULL);
 
   state->idref2 = gegl_node_new_child (gegl,
-                                  "operation", "gegl:nop", 
+                                  "operation", "gegl:nop",
                                   NULL);
 
   state->rotate = gegl_node_new_child (gegl,
-                                  "operation", "gegl:nop", /* "gegl:rotate-on-center", "sampler", 3, was the original node*/
+                                  "operation",  "gegl:rotate-on-center", "sampler", 3,
                                   NULL);
 
   state->crop = gegl_node_new_child (gegl,
-                                  "operation", "gegl:crop", 
+                                  "operation", "gegl:crop",
                                   NULL);
 
   state->scale1 = gegl_node_new_child (gegl,
@@ -153,25 +156,28 @@ state->invertstring = gegl_node_new_child (gegl,
                                   "operation", "gegl:scale-ratio", "sampler", 4, NULL); /*lohalo*/
 
   state->align = gegl_node_new_child (gegl,
-                                  "operation", "gegl:border-align", 
+                                  "operation", "gegl:border-align",
                                   NULL);
 
- gegl_operation_meta_redirect (operation, "x", state->align,  "x"); 
- gegl_operation_meta_redirect (operation, "y", state->align,  "y"); 
- gegl_operation_meta_redirect (operation, "scale", state->scale1, "x"); 
- gegl_operation_meta_redirect (operation, "scale", state->scale1, "y"); 
- gegl_operation_meta_redirect (operation, "scale", state->scale2, "x"); 
- gegl_operation_meta_redirect (operation, "scale", state->scale2, "y"); 
-  /* gegl_operation_meta_redirect (operation, "rotate", state->rotate, "degrees"); 
+ gegl_operation_meta_redirect (operation, "x", state->align,  "x");
+ gegl_operation_meta_redirect (operation, "y", state->align,  "y");
+ gegl_operation_meta_redirect (operation, "scale", state->scale1, "x");
+ gegl_operation_meta_redirect (operation, "scale", state->scale1, "y");
+ gegl_operation_meta_redirect (operation, "scale", state->scale2, "x");
+ gegl_operation_meta_redirect (operation, "scale", state->scale2, "y");
+
+gegl_operation_meta_redirect (operation, "rotate", state->rotate, "degrees");
+  /*
 In early developing this filter had a rotate option that was scrapped */
 
-} 
+}
 
 static void
 update_graph (GeglOperation *operation)
 {
   GeglProperties *o = GEGL_PROPERTIES (operation);
   State *state = o->user_data;
+  GeglNode *rotate  = state->rotate;
   if (!state) return;
 
 
@@ -182,11 +188,15 @@ update_graph (GeglOperation *operation)
 default: scale = state->scale1;
 
 }
-  gegl_node_link_many (state->input, state->idref2, state->alphalockreplace, state->crop, state->output,  NULL);
-  gegl_node_connect (state->alphalockreplace, "aux", state->erase, "output");
+
+  if (o->enablerotate) rotate = state->rotate;
+  if (!o->enablerotate) rotate = state->nop;
+
+  gegl_node_link_many (state->input, state->idref2, state->replacenode, state->output,  NULL);
+  gegl_node_connect (state->replacenode, "aux", state->erase, "output");
   gegl_node_link_many (state->idref2, state->idref, state->invertstring, state->erase,  NULL);
   gegl_node_connect (state->erase, "aux", state->align, "output");
-  gegl_node_link_many (state->idref,  scale, state->rotate, state->align,  NULL);
+  gegl_node_link_many (state->idref,  scale, rotate, state->align,  NULL);
 }
 
 static void
